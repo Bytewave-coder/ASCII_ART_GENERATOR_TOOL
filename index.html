@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enhanced ASCII Art Generator</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Base Dark (Futuristic) Mode */
+    body {
+      background: linear-gradient(to bottom right, #00c6ff, #0072ff);
+      font-family: 'Courier New', monospace;
+      color: white;
+      transition: background 0.5s, color 0.5s;
+    }
+    /* Light Mode Overrides */
+    .light-mode {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .light-mode .btn {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .light-mode .ascii-output, 
+    .light-mode .image-preview {
+      background-color: #fff;
+      color: #333;
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .glitch {
+      color: #ff00ff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+      animation: glitch 1s infinite linear;
+    }
+    @keyframes glitch {
+      0% { text-shadow: 1px 1px 2px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.4); }
+      50% { text-shadow: -1px -1px 2px rgba(0,0,0,0.4), 1px 1px 2px rgba(255,255,255,0.4); }
+      100% { text-shadow: 1px 1px 2px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.4); }
+    }
+    .content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .controls, .preview, .output {
+      flex: 1 1 300px;
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }
+    .controls label {
+      margin-right: 0.5rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 8px;
+      line-height: 1.1;
+    }
+    canvas {
+      display: none;
+    }
+/* About Us Section Styling */
+   .about-us {
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      border-radius: 10px;
+      padding: 2rem;
+      margin: 2rem 0;
+      animation: fadeIn 2s ease-in-out;
+    }
+
+    
+    .about-us-heading {
+      font-size: 2rem;
+      color: #ff00ff;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+      animation: glitchEffect 1s infinite linear;
+    }
+      
+    .about-us-text {
+      font-size: 1.2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      opacity: 0;
+      animation: fadeInText 2s ease-out forwards;
+    }
+
+     .about-us-text span {
+      font-weight: bold;
+    }
+
+    /* Unique Glitch Animation */
+    @keyframes glitchEffect {
+      0% { text-shadow: 1px 1px 2px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.4); }
+      50% { text-shadow: -1px -1px 2px rgba(0,0,0,0.4), 1px 1px 2px rgba(255,255,255,0.4); }
+      100% { text-shadow: 1px 1px 2px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.4); }
+    }
+  </style>
+</head>
+<body class="">
+  <!-- Header with Title and Theme Toggle -->
+  <div class="text-center py-4">
+    <h1 class="glitch">Enhanced ASCII Art Generator</h1>
+    <button id="toggleTheme" class="btn px-4 py-2 mb-2">Toggle Light Mode</button>
+    </div>
+
+  <!-- Main Content Area -->
+  <div class="content">
+    <!-- Controls Section -->
+    <div class="controls">
+      <div class="mb-4">
+        <label class="block mb-1">Select Image:</label>
+        <input type="file" id="imageInput" accept="image/*" class="border p-1 w-full">
+      </div>
+      <div class="mb-4">
+        <label class="block mb-1">Advanced Options:</label>
+        <div>
+          <label>Brightness:</label>
+          <input type="range" id="brightnessSlider" min="0.5" max="2" step="0.1" value="1" class="w-full">
+        </div>
+        <div class="mt-2">
+          <label>Contrast:</label>
+          <input type="range" id="contrastSlider" min="0.5" max="2" step="0.1" value="1" class="w-full">
+        </div>
+        <div class="mt-2">
+          <label>
+            <input type="checkbox" id="sharpenFilter">
+            Apply Sharpen Filter
+          </label>
+        </div>
+      </div>
+      <div class="mb-4">
+        <button id="generateArt" class="btn px-4 py-2 w-full">Generate ASCII Art</button>
+      </div>
+      <div class="mb-4">
+        <button id="clearArt" class="btn px-4 py-2 w-full">Clear Art</button>
+      </div>
+      <div>
+        <button id="exportArt" class="btn px-4 py-2 w-full">Export ASCII Art</button>
+      </div>
+    </div>
+
+    <!-- Image Preview Section -->
+    <div class="preview image-preview text-center">
+      <h2 class="mb-2">Image Preview</h2>
+      <img id="imagePreview" src="" alt="Preview" class="mx-auto max-w-full" style="display: none;">
+    </div>
+
+    <!-- ASCII Output Section -->
+    <div class="output ascii-output">
+      <h2 class="mb-2">Generated ASCII Art</h2>
+      <pre id="asciiOutput"></pre>
+    </div>
+  </div>
+
+  <!-- Hidden Canvas for Processing -->
+  <canvas id="processingCanvas"></canvas>
+
+  <script>
+    // --- Utility Functions ---
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    // Convolution function to apply filters (expects a 1D grayscale array)
+    function convolution(input, width, height, kernel, kernelSize) {
+      const output = new Array(width * height).fill(0);
+      const half = Math.floor(kernelSize / 2);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let sum = 0;
+          for (let ky = -half; ky <= half; ky++) {
+            for (let kx = -half; kx <= half; kx++) {
+              const posY = clamp(y + ky, 0, height - 1);
+              const posX = clamp(x + kx, 0, width - 1);
+              const weight = kernel[(ky + half) * kernelSize + (kx + half)];
+              sum += input[posY * width + posX] * weight;
+            }
+          }
+          output[y * width + x] = sum;
+        }
+      }
+      return output;
+    }
+
+    // --- DOM Elements ---
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const asciiOutput = document.getElementById('asciiOutput');
+    const processingCanvas = document.getElementById('processingCanvas');
+    const generateArtButton = document.getElementById('generateArt');
+    const clearArtButton = document.getElementById('clearArt');
+    const exportArtButton = document.getElementById('exportArt');
+    const toggleThemeButton = document.getElementById('toggleTheme');
+
+    const brightnessSlider = document.getElementById('brightnessSlider');
+    const contrastSlider = document.getElementById('contrastSlider');
+    const sharpenFilterCheckbox = document.getElementById('sharpenFilter');
+
+    // --- Theme Toggle ---
+    toggleThemeButton.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+    });
+
+    // --- Image Preview Handling ---
+    imageInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const imgURL = URL.createObjectURL(file);
+        imagePreview.src = imgURL;
+        imagePreview.style.display = "block";
+      }
+    });
+
+    // --- Main ASCII Art Generation ---
+    generateArtButton.addEventListener('click', () => {
+      if (!imagePreview.src) return alert("Please select an image first.");
+      generateAsciiArt(imagePreview);
+    });
+
+    clearArtButton.addEventListener('click', () => {
+      asciiOutput.textContent = '';
+      imagePreview.src = '';
+      imagePreview.style.display = "none";
+      imageInput.value = "";
+    });
+
+    exportArtButton.addEventListener('click', () => {
+      const asciiText = asciiOutput.textContent;
+      const blob = new Blob([asciiText], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'ascii_art.txt';
+      link.click();
+    });
+
+    // --- ASCII Art Generation Function ---
+    function generateAsciiArt(img) {
+      // Set a target width for the ASCII output
+      const targetWidth = 150;
+      const targetHeight = Math.floor(img.height * (targetWidth / img.width));
+
+      // Set up canvas for processing
+      processingCanvas.width = targetWidth;
+      processingCanvas.height = targetHeight;
+      const ctx = processingCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      // Retrieve image data and convert to grayscale
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      let grayscaleData = [];
+
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        // Calculate the average of R, G, and B
+        let r = imageData.data[i],
+            g = imageData.data[i + 1],
+            b = imageData.data[i + 2];
+        let gray = Math.floor((r + g + b) / 3);
+
+        // Adjust brightness and contrast
+        const brightness = parseFloat(brightnessSlider.value);
+        const contrast = parseFloat(contrastSlider.value);
+        // First apply brightness
+        gray = gray * brightness;
+        // Then apply contrast adjustment: ((pixel - 128) * contrast) + 128
+        gray = ((gray - 128) * contrast) + 128;
+        gray = clamp(Math.floor(gray), 0, 255);
+        grayscaleData.push(gray);
+      }
+
+      // Optionally apply a sharpen filter if checked
+      if (sharpenFilterCheckbox.checked) {
+        // Sharpen kernel: center is boosted while surrounding pixels are subtracted
+        const sharpenKernel = [
+           0, -1,  0,
+          -1,  5, -1,
+           0, -1,  0
+        ];
+        grayscaleData = convolution(grayscaleData, targetWidth, targetHeight, sharpenKernel, 3);
+        // Re-normalize after convolution:
+        grayscaleData = grayscaleData.map(v => clamp(Math.floor(v), 0, 255));
+      }
+
+      // Generate ASCII art by mapping each grayscale value to a character
+      const asciiSet = "@#*+=-:. "; // You can customize this set
+      let asciiArt = "";
+      for (let y = 0; y < targetHeight; y++) {
+        for (let x = 0; x < targetWidth; x++) {
+          const pixelVal = grayscaleData[y * targetWidth + x];
+          const charIndex = Math.floor((pixelVal / 255) * (asciiSet.length - 1));
+          asciiArt += asciiSet[charIndex];
+        }
+        asciiArt += "\n";
+      }
+      asciiOutput.textContent = asciiArt;
+    }
+
+ // --- Set to Desktop Site Mode ---
+    if (window.innerWidth <= 768) {
+      const metaViewport = document.querySelector('meta[name="viewport"]');
+      metaViewport.setAttribute('content', 'width=1024');  // Force desktop width
+    }
+  </script>
+</body>
+</html>
